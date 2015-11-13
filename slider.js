@@ -3,6 +3,9 @@ $(document).ready(function () {
     "use strict";
 
     function Slider(element, settings) {
+        this.extends = [
+            'controls'
+        ],
         /*Настройки общие*/
         this.repeat = settings.repeat || true, //Зацикливание
                 this.speed = settings.speed || 1000,
@@ -34,6 +37,12 @@ $(document).ready(function () {
             if (countItems < 2) return false;
             if (countItems === 2) {
                 this.createAdditionalChilde();
+            }
+            
+            if (this.extends.length > 0) {
+                for (var i = 0, max = this.extends.length; i < max; i++) {
+                    this[this.extends[i]]();
+                }
             }
 
             this.updateElementsClasses();
@@ -410,15 +419,44 @@ $(document).ready(function () {
     };
  
 /*****EXTENDS****/
+    Slider.prototype.controls = function () {
+        var self = this;
+        createElements();
+        
+        function createElements() {
+            var countItems = self.items.length,
+                    fragment = document.createDocumentFragment();
 
+            for (var i = 0; i < countItems; i++) {
+                var element = document.createElement('li');
+                if (i === 0) {
+                    $(element).addClass('slider__control-item slider__control-item_active');
+                }
+                else {
+                    $(element).addClass('slider__control-item');
+                }
+                $(element).attr('data-index', '' + i);
+                $(element).on('click', function () {
+                    changeSlide(  parseInt( $(this).attr('data-index') ) );
+                });
+                fragment.appendChild(element);
+            }
+            
+            var list = document.createElement('ul');
+            $(list).addClass('slider__control-list');
+            list.appendChild(fragment);
+            
+            $(self.box).append(list);
+        }
+        
+        function changeSlide(counter) {
+            console.log(counter);
+        }
+    };
 
-    var arrSliders = slidersCollection('.slider_js');
+    slidersCollection('.slider_js');
 
-    for (var i = 0; i < arrSliders.length; i++) {
-        arrSliders[i].init();
-    }
-
-    function slidersCollection(className) {
+     function slidersCollection(className) {
         var sliders = $(className);
 
         for (var i = 0; i < sliders.length; i++) {
@@ -427,8 +465,9 @@ $(document).ready(function () {
                 repeat: $(sliders[i]).data('repeat'),
                 auto: $(sliders[i]).data('auto')
             });
+            
+            sliders[i].init();
         }
-        return sliders;
     }
     
 });
