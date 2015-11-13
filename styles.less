@@ -1,0 +1,189 @@
+body {
+    margin: 0;
+}
+.page {
+    min-width: 320px;
+    max-width: 800px;
+    margin: 0 auto;
+    padding-top: 100px;
+}
+@font-face {
+    font-family: 'icon-fonts';
+    src: url('font/icon.eot?15485633');
+    src: url('font/icon.eot?15485633#iefix') format('embedded-opentype'),
+        url('font/icon.woff?15485633') format('woff'),
+        url('font/icon.ttf?15485633') format('truetype'),
+        url('font/icon.svg?15485633#fontello') format('svg');
+    font-weight: normal;
+    font-style: normal;
+}
+.slider__control   {
+    font-family: "icon";
+    font-style: normal;
+    font-weight: normal;
+    speak: none;
+    display: inline-block;
+    text-decoration: inherit;
+    font-variant: normal;
+    text-transform: none;
+    line-height: 1em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+.slider {
+    margin-bottom: 50px; 
+}
+
+/*******************************************************/
+
+.slider * {
+    box-sizing: content-box;
+}
+.slider {
+    position: relative;
+
+    &__body {
+        position: relative;
+        overflow: hidden; 
+    }
+    &__list {
+        position: relative; 
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    &__item {
+        position: absolute;
+        display: block;
+        opacity: 0;
+        top: 0;
+        left: 0;
+        max-width: 100%;
+        margin: 0 !important;
+        padding: 0 !important;
+        height: auto; 
+        list-style: none;
+        text-align: center;
+        
+        &_active {
+            position: relative;
+            opacity: 1;
+            transition: opacity 0.5s linear;
+            z-index: 10;
+        }
+        &_right {
+            width: 100%; //need for crossbrowsers
+            opacity: 0.5;
+            transform: translateX(100%);
+            transition: opacity 0.5s linear;
+        }
+        &_left {
+            width: 100%; //need for crossbrowsers
+            opacity: 0.5;
+            transform: translateX(-100%);
+            transition: opacity 0.5s linear;
+        }
+
+        .no-transform_js &_active {
+            transform: none;
+        }
+        .no-transform_js &_right {
+            transform: none;
+            left: 100%;
+        }
+        .no-transform_js &_left {
+            transform: none;
+            left: -100%;
+        }
+    }
+    &__image {
+        display: inline-block;
+        vertical-align: top;
+        max-width: 100%;
+
+    }
+    &__control {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        display: inline-block;
+        vertical-align: middle;
+        width: 1.8em;
+        text-decoration: none;
+        font-size: 3em;
+        color: rgba(128,128,128,0.8) !important;
+        text-shadow: 2px 0 rgba(255,255,255,1),
+                    -2px 0 rgba(255,255,255,1),
+                     0 2px rgba(255,255,255,1),
+                     0 -2px rgba(255,255,255,1);
+        font-weight: bold;
+        text-align: center;
+        font-family: "icon-fonts";
+        z-index: 12;
+        outline: none;
+        transition: background 0.4s linear;
+        &::before {
+            display: inline-block;
+            vertical-align: middle;
+            content: '';
+            height: 100%;
+            width: 0;
+        }
+        &_prev {
+            left: 0;
+        }
+        &_next {
+            right: 0;
+        }
+        &:hover {
+            color: rgba(128,128,128,1) !important; 
+            transition: color 0.4s linear;
+            text-decoration: none;
+        }
+    }
+    &__counter {
+        position: absolute;
+        top: 1em;
+        right: 3em;
+        padding: 0.1em 0.4em;
+        background: rgba(0,0,0,0.9);
+        color: #FFF;
+        font-size: 0.8em;
+        z-index: 12;
+    }
+    &__item-text {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 0.8em 1em;
+        background: rgba(0,0,0,0.6); 
+        color: #FFF;
+        font-size: 0.9em;
+        text-align: left;
+    }
+    &_js_scrollbar-measure { //элемент для определения ширины скроллбара
+                             width: 100px;
+                             height: 100px;
+                             overflow: scroll;
+                             position: absolute;
+                             top: -9999px;
+    }
+}
+.slider__image + .slider__image {
+    display: none;
+}
+
+@media all and (max-width: 684px) {
+    .slider {
+        &__control {
+        font-size: 2em; 
+        }
+    }  
+}
+@media all and (max-width: 479px) {
+    .slider {
+        &__control {
+        font-size: 1em; 
+        }
+    }  
+}
