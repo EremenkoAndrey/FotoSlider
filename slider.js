@@ -2,10 +2,8 @@ $(document).ready(function () {
 
     "use strict";
 
-    function Slider(element, settings) {
-        this.extends = [
-            'controls'
-        ],
+    function Slider(element, settings, ext) {
+        this.extends = ext || false,
         /*Настройки общие*/
         this.repeat = settings.repeat || true, //Зацикливание
                 this.speed = settings.speed || 1000,
@@ -36,30 +34,14 @@ $(document).ready(function () {
             // если картинок меньше 2 слайдер не работает
             if (countItems < 2) return false;
             if (countItems === 2) {
-                this.createAdditionalChilde();
+                this.repeat === 'norepeat';
             }
             
-            if (this.extends.length > 0) {
+            if (this.extends) {
                 for (var i = 0, max = this.extends.length; i < max; i++) {
                     this[this.extends[i]]();
                 }
             }
-
-            this.updateElementsClasses();
-
-            // Устанавливаем обработчики
-            $(this.next).on('click', function (e) {
-                e.preventDefault();
-                if (self.animate)
-                    return false;
-                self.slide('next', self.speed, self.counter);
-            });
-            $(this.prev).on('click', function (e) {
-                e.preventDefault();
-                if (self.animate)
-                    return false;
-                self.slide('prev', self.speed, self.counter);
-            });
             
             // Проверяем и включаем настройки
             
@@ -79,6 +61,23 @@ $(document).ready(function () {
                 this.repeat = false;
                 this.norepeat();
             }
+
+            this.updateElementsClasses().setNew();
+
+            // Устанавливаем обработчики
+            $(this.next).on('click', function (e) {
+                e.preventDefault();
+                if (self.animate)
+                    return false;
+                self.slide('next', self.counter);
+            });
+            $(this.prev).on('click', function (e) {
+                e.preventDefault();
+                if (self.animate)
+                    return false;
+                self.slide('prev', self.counter);
+            });
+
         },
         /**
          * Получение массива из трех элементов: левого, правого и центрального
@@ -122,34 +121,42 @@ $(document).ready(function () {
          * @param {array} // необязательный параметр - массив с предыдущими 
          * активными элементами для удаления классов
          */
-        updateElementsClasses: function (arrElements) {
-            var oldActiveElements = arrElements || false;
-            var newActiveElements = this.getElementsSet(this.counter);
-
-            if (oldActiveElements) {
-                $(oldActiveElements.mainElement).removeClass('slider__item_active');
-                $(oldActiveElements.rightSibling).removeClass('slider__item_right');
-                $(oldActiveElements.leftSibling).removeClass('slider__item_left');
-            }
-
-            $(newActiveElements.mainElement).addClass('slider__item_active');
-            $(newActiveElements.rightSibling).addClass('slider__item_right');
-            $(newActiveElements.leftSibling).addClass('slider__item_left');
-
-            this.clearInlineCss();
-
-            this.animate = false;
+        updateElementsClasses: function () {
+          var self = this;
+            return {
+                setNew: function (arrElements) {
+                    var newElements = arrElements || self.getElementsSet(self.counter);
+                    $(newElements.mainElement).addClass('slider__item_active');
+                    $(newElements.rightSibling).addClass('slider__item_right');
+                    $(newElements.leftSibling).addClass('slider__item_left');
+                },
+                removeOld: function (arrElements) {
+                    var oldElements = arrElements || false;
+                    if (!oldElements) {
+                        throw new Error("Необходимо передать аргумент с массивом элементов");
+                    }
+                    $(oldElements.mainElement).removeClass('slider__item_active');
+                    $(oldElements.rightSibling).removeClass('slider__item_right');
+                    $(oldElements.leftSibling).removeClass('slider__item_left');
+                }
+            };
         },
         /**
          * Обновляет значение счетчика. В большую или меньшую сторону -
          * определяет переданная строка
-         * @param {string} // 'plus' или 'minus'
+         * @param 'plus' или 'minus' изменяют значение на единицу, можно передать число
          * При изменении значения счетчика генерирует глобальное событие 
          * 'counterUpdate'
          */
-        updateCounter: function (action) {
+        updateCounter: function (value) {
             var number = this.counter,
                     elementsCount = this.items.length;
+            
+            if(!isNaN(parseFloat(value)) && isFinite(value)) {
+                this.counter = value;
+                $.event.trigger('counterUpdate');
+                return;
+            }
 
             var operation = {
                 plus: function () {
@@ -160,7 +167,7 @@ $(document).ready(function () {
                 }
             };
 
-            number = operation[action]();
+            number = operation[value]();
 
             if (number === (elementsCount)) {
                 this.counter = 0;
@@ -177,16 +184,14 @@ $(document).ready(function () {
         /**
          * Функция обеспечивает перемещение, смену активных элементов
          * @param {type} direction // направление 'next' (следующ.) или 'prev' (предыд.)
-         * @param {type} speed // скорость анимации
-         * @param {type} counter // текущее значение счетчика (до смены слайдов)
+         * @param {type} counter // текущее значение счетчика
+         * @param {type} speed // скорость анимации (необязательный)
          * @returns {undefined}
          */
-        slide: function (direction, speed, counter) {
+        slide: function (direction, counter, speed) {
             var self = this,
                     animationSpeed = speed || this.speed,
-                    transitionControl = true, //флаг контроля единичного срабатывания обработчика события завершения анимации
                     elementsSet = this.getElementsSet(counter); //получаем текущие активные элементы по старому значеню счетчика
-
             var directions = {
                 next: {left: '-200%', center: '-100%', right: '0'},
                 prev: {left: '0', center: '100%', right: '200%'}
@@ -203,13 +208,14 @@ $(document).ready(function () {
             this.animate = true;
 
             $(elementsSet.leftSibling).css({'transform': 'translateX(' + endPosition.left + ')', 'transition': 'transform ' + animationSpeed / 1000 + 's linear'});
-            $(elementsSet.mainElement).css({'transform': 'translateX(' + endPosition.center + ')', 'transition': 'transform ' + animationSpeed / 1000 + 's linear', opacity: '0.5'});
+            $(elementsSet.mainElement).css({'transform': 'translateX(' + endPosition.center + ')', 'transition': 'transform ' + animationSpeed / 1000 + 's linear'});
             $(elementsSet.rightSibling).css({'transform': 'translateX(' + endPosition.right + ')', 'transition': 'transform ' + animationSpeed / 1000 + 's linear'});
             $(elementsSet.mainElement).on('transitionend webkitTransitionEnd oTransitionEnd', function () {
-                if (transitionControl) {
-                    self.updateElementsClasses(elementsSet);   //По завершению анимации выставляем новые значения 
-                }
-                transitionControl = false;
+                $(this).unbind('transitionend webkitTransitionEnd oTransitionEnd');
+                self.updateElementsClasses().removeOld(elementsSet); // По завершению анимации удаляем старые 
+                self.updateElementsClasses().setNew();               // и выставляем новые значения 
+                self.clearInlineCss();
+                self.animate = false;
             });
         },
         /**
@@ -264,10 +270,10 @@ $(document).ready(function () {
                     return;
                 }
                 if (shiftElement < -self.percentReturn) {
-                    self.slide('prev', self.speed, self.counter);
+                    self.slide('prev', self.counter);
                 }
                 else if (shiftElement > self.percentReturn) {
-                    self.slide('next', self.speed, self.counter);
+                    self.slide('next', self.counter);
                 }
                 else {
                     actions.mooveReturn();
@@ -328,6 +334,7 @@ $(document).ready(function () {
                     $(siblings.mainElement).css({'transform': 'translateX(0%)', 'transition': 'transform ' + self.speed / 1000 + 's cubic-bezier(0.175, 0.885, 0.32, 1.275)'});
                     $(siblings.rightSibling).css({'transform': 'translateX(100%)', 'transition': 'transform ' + self.speed / 1000 + 's cubic-bezier(0.175, 0.885, 0.32, 1.275)'});
                     $(siblings.mainElement).on('transitionend webkitTransitionEnd oTransitionEnd', function () {
+                        $(this).unbind('transitionend webkitTransitionEnd oTransitionEnd');
                         self.clearInlineCss();
                         self.animate = false;
                     });
@@ -359,26 +366,24 @@ $(document).ready(function () {
              */
             function controlElementsMenegement() {
                 if (self.counter === 0) {
-                    $(self.prev).hide(self.speed);
+                    $(self.prev).hide(100);
+                    if (hideElement){
+                        $(hideElement).show(100);
+                    }
                     hideElement = self.prev;
                 }
                 else if (self.counter === countElements) {
-                    $(self.next).hide(self.speed);
+                    $(self.next).hide(100);
+                    if (hideElement){
+                        $(hideElement).show(100);
+                    }
                     hideElement = self.next;
                 }
                 else if (hideElement) {
-                    $(hideElement).show(self.speed);
+                    $(hideElement).show(100);
                     hideElement = null;
                 }
             }
-        },
-        /**
-         * Создает дополнительные элементы, если в слайдере меньше 3 картинок.
-         */
-        createAdditionalChilde: function() {
-            $(this.items[0]).clone().removeClass('slider__item_active').appendTo(this.list);
-            $(this.items[1]).clone().appendTo(this.list);
-            this.items = $(this.box).find('.slider__item');  //обновляем массив картинок
         },
         /**
          * Управляет режимом автоматической прокрутки
@@ -399,7 +404,7 @@ $(document).ready(function () {
             
             setInterval(function () {
                 if (!autoScrollFlag) {
-                    self.slide('next', self.speed, self.counter);
+                    self.slide('next', self.counter);
                 }
             }, speed);
             /**
@@ -420,38 +425,110 @@ $(document).ready(function () {
  
 /*****EXTENDS****/
     Slider.prototype.controls = function () {
-        var self = this;
-        createElements();
+        var self = this,
+            controlElements = $('.slider__control-item',this.box);
         
-        function createElements() {
-            var countItems = self.items.length,
-                    fragment = document.createDocumentFragment();
+        function ControlElement(){
+            this.active = false,
+            this.index = null,
+            this.$element = null;
+        };
+        
+        ControlElement.prototype = {
+            init: function () {
+                this.watch();
+                this.addClasses();
 
-            for (var i = 0; i < countItems; i++) {
+                this.$element.on('click', function () {
+                    if (this.index === self.counter) {
+                        return false;
+                    }
+                    checkoutItem(this.index);
+                }.bind(this));
+            },
+            watch: function () {
+                $(document).on('counterUpdate', function () {
+                  
+                    if(this.index === self.counter) {
+                        this.$element.addClass('slider__control-item_active');
+                        this.active = true;
+                    }
+                    else if (this.active) {
+                        this.$element.removeClass('slider__control-item_active');
+                    }
+                    
+                }.bind(this));
+            },
+            addClasses: function () {
+                this.$element.addClass('slider__control-item'); 
+                if(this.active) {
+                   this.$element.addClass('slider__control-item_active'); 
+                }
+            }
+        };
+        
+        if (controlElements.length === 0) {
+            createView();
+        }
+        else {
+           createModel(controlElements);
+        };
+
+        
+        function createModel(arrElements) {
+            self.model = [];
+            
+            for (var i = 0, max = arrElements.length; i < max; i++) {
+                self.model[i] = new ControlElement;
+                if(i === 0 ) self.model[i].active = true;
+                self.model[i].index = i;
+                self.model[i].$element = $(arrElements[i]);
+                self.model[i].init();
+            }
+        }
+        
+        function createView() {
+            var  fragment = document.createDocumentFragment(),
+                    elements = [];
+
+            for (var i = 0, max = self.items.length; i < max; i++) {
                 var element = document.createElement('li');
-                if (i === 0) {
-                    $(element).addClass('slider__control-item slider__control-item_active');
-                }
-                else {
-                    $(element).addClass('slider__control-item');
-                }
-                $(element).attr('data-index', '' + i);
-                $(element).on('click', function () {
-                    changeSlide(  parseInt( $(this).attr('data-index') ) );
-                });
+                elements.push(element);
                 fragment.appendChild(element);
             }
+            
+            createModel(elements);
             
             var list = document.createElement('ul');
             $(list).addClass('slider__control-list');
             list.appendChild(fragment);
-            
             $(self.box).append(list);
         }
-        
-        function changeSlide(counter) {
-            console.log(counter);
+
+        function checkoutItem(index) {
+            var oldActiveElements = self.getElementsSet(self.counter);
+            
+                self.updateCounter(index);
+                self.updateElementsClasses().removeOld(oldActiveElements); 
+                self.updateElementsClasses().setNew();               
         }
+        
+        /*function smoothlyCheckout(index, oldIndex) {
+            var count = Math.abs(index - oldIndex) + 1;
+            var next = (index > oldIndex) ? true : false;
+            
+            $(self.items[oldIndex]).css('position','relative');
+            
+            for (var i = oldIndex; i <= index; i++) {
+
+                $(self.items[i]).css({'opacity': '1', 'transform': 'translateX(' + i + '00%)', 'transition': 'transform 10s linear'});
+            }
+            for (var k = index, i = oldIndex; k >= 0; k--) {
+                $(self.items[i]).css({'opacity': '1', 'transform': 'translateX(-' + k + '00%)', 'transition': 'transform 10s linear'});
+                i++;
+            }
+        }*/
+
     };
 
     slidersCollection('.slider_js');
@@ -464,7 +541,9 @@ $(document).ready(function () {
                 speed: parseInt($(sliders[i]).data('speed')),
                 repeat: $(sliders[i]).data('repeat'),
                 auto: $(sliders[i]).data('auto')
-            });
+            }, [
+               'controls' 
+            ]);
             
             sliders[i].init();
         }
