@@ -1,11 +1,11 @@
-$(document).ready(function () {
+$(function () {
 
     "use strict";
-
-    function Slider(element, settings, ext) {
+    
+    var Slider = function (element, settings, ext) {
         this.extends = ext || false,
-        /*Настройки общие*/
-        this.repeat = settings.repeat || true, //Зацикливание
+        /*Настройки общие. Задаются в data-атрибутах*/
+        this.repeat = settings.repeat || true, 
                 this.speed = settings.speed || 1000,
                 this.auto = settings.auto || false,
         /*Touch*/
@@ -22,8 +22,12 @@ $(document).ready(function () {
                 this.prev = $(element).find('.slider__control_prev').get(0), //Ссылка на кнопку >
                 this.next = $(element).find('.slider__control_next').get(0), //Ссылка на кнопку <
                 this.boxWidth = $(element).width();
+                
+                Window.RTSlider = this; // Экспорт в глобальное пр-во имен
+                $.event.trigger('sliderReady'); // Извещаем подписчиков по готовности модуля
     }
 
+    // Методы, необходимые для работы слайдера
     Slider.prototype = {
         /**
          * Инициализация слайдера
@@ -82,7 +86,10 @@ $(document).ready(function () {
         /**
          * Получение массива из трех элементов: левого, правого и центрального
          * @param {number} counter // по номеру центрального элемента
-         * @returns {array} // массив активных элементов
+         * @returns {array} массив активных элементов, в зависимости от
+         * режима можно получать:
+         * repeat // всегда полный набор элементов (для "бесконечного" режима) 
+         * norepeat// полный набор только если имеются все соседние элементы 
          */
         getElementsSet: function (counter) {
             var arrElements = {
@@ -117,9 +124,11 @@ $(document).ready(function () {
             return arrElements.norepeat;
         },
         /**
-         * Обновляем классы активных элементов
-         * @param {array} // необязательный параметр - массив с предыдущими 
-         * активными элементами для удаления классов
+         * Возвращает объект с двумя методами: 
+         * setNew: @param {array} // устанавливает элементам новые классы
+         * принимает необязательный параметр - массив элементов
+         * removeOld: @param {array} // удаляет классы у элементов 
+         * принимает один обязательный параметр - массив элементов
          */
         updateElementsClasses: function () {
           var self = this;
@@ -144,8 +153,9 @@ $(document).ready(function () {
         /**
          * Обновляет значение счетчика. В большую или меньшую сторону -
          * определяет переданная строка
-         * @param 'plus' или 'minus' изменяют значение на единицу, можно передать число
-         * При изменении значения счетчика генерирует глобальное событие 
+         * @param 'plus' или 'minus' изменяют значение на единицу, 
+         * можно передать конкретное число
+         * При изменении значения счетчика метод генерирует глобальное событие 
          * 'counterUpdate'
          */
         updateCounter: function (value) {
@@ -186,7 +196,6 @@ $(document).ready(function () {
          * @param {type} direction // направление 'next' (следующ.) или 'prev' (предыд.)
          * @param {type} counter // текущее значение счетчика
          * @param {type} speed // скорость анимации (необязательный)
-         * @returns {undefined}
          */
         slide: function (direction, counter, speed) {
             var self = this,
@@ -197,6 +206,9 @@ $(document).ready(function () {
                 prev: {left: '0', center: '100%', right: '200%'}
             };
             var endPosition = directions[direction];
+            
+            if(this.animate) return false;
+            this.animate = true;
 
             if (direction === 'next') {
                 this.updateCounter('plus');
@@ -205,17 +217,16 @@ $(document).ready(function () {
                 this.updateCounter('minus');
             }
 
-            this.animate = true;
-
             $(elementsSet.leftSibling).css({'transform': 'translateX(' + endPosition.left + ')', 'transition': 'transform ' + animationSpeed / 1000 + 's linear'});
             $(elementsSet.mainElement).css({'transform': 'translateX(' + endPosition.center + ')', 'transition': 'transform ' + animationSpeed / 1000 + 's linear'});
             $(elementsSet.rightSibling).css({'transform': 'translateX(' + endPosition.right + ')', 'transition': 'transform ' + animationSpeed / 1000 + 's linear'});
-            $(elementsSet.mainElement).on('transitionend webkitTransitionEnd oTransitionEnd', function () {
+            $(elementsSet.mainElement).one('transitionend webkitTransitionEnd oTransitionEnd', function () {
                 $(this).unbind('transitionend webkitTransitionEnd oTransitionEnd');
                 self.updateElementsClasses().removeOld(elementsSet); // По завершению анимации удаляем старые 
                 self.updateElementsClasses().setNew();               // и выставляем новые значения 
                 self.clearInlineCss();
                 self.animate = false;
+                return true;
             });
         },
         /**
@@ -333,7 +344,7 @@ $(document).ready(function () {
                     $(siblings.leftSibling).css({'transform': 'translateX(-100%)', 'transition': 'transform ' + self.speed / 1000 + 's cubic-bezier(0.175, 0.885, 0.32, 1.275)'});
                     $(siblings.mainElement).css({'transform': 'translateX(0%)', 'transition': 'transform ' + self.speed / 1000 + 's cubic-bezier(0.175, 0.885, 0.32, 1.275)'});
                     $(siblings.rightSibling).css({'transform': 'translateX(100%)', 'transition': 'transform ' + self.speed / 1000 + 's cubic-bezier(0.175, 0.885, 0.32, 1.275)'});
-                    $(siblings.mainElement).on('transitionend webkitTransitionEnd oTransitionEnd', function () {
+                    $(siblings.mainElement).one('transitionend webkitTransitionEnd oTransitionEnd', function () {
                         $(this).unbind('transitionend webkitTransitionEnd oTransitionEnd');
                         self.clearInlineCss();
                         self.animate = false;
@@ -390,26 +401,43 @@ $(document).ready(function () {
          */
         autoScroll: function() {
             var self = this,
+                    time,
                     speed = setAutoSlideSpeed(this.auto),
-                    autoScrollFlag = false;  //Флаг автоскролла
+                    autoScrollFlag = true;  //Флаг автоскролла
     
             $(this.box).hover(
                     function() {
-                        autoScrollFlag = true;
+                        autoScrollFlag = false;
                     },
                     function() {
-                        autoScrollFlag = false;
+                        autoScrollFlag = true;
                     }
             );
             
-            setInterval(function () {
-                if (!autoScrollFlag) {
-                    self.slide('next', self.counter);
-                }
-            }, speed);
+            timer();
+            
+            $(document).on('counterUpdate', function () {
+                timer();
+            });
+            
+            function timer() {
+                time = setTimeout(function () {
+                    // Если мышка не над элементом и нет анимации, которая иногда 
+                    // запаздывает при нагрузке на браузер в неактивной вкладке
+                    if (autoScrollFlag && !self.animate) {
+                        clearTimeout(time);
+                        self.slide('next', self.counter);
+                    } else {
+                        // Или очищаем таймаут и пытаемся запустить ф-цию повторно
+                        clearTimeout(time);
+                        timer();
+                    }
+                }, speed);
+            }
+
             /**
-             * Валидация скорости автопрокрутки
-             * @returns {nember} // скорость автопрокрутки
+             * Валидация передаваемой в настройках скорости автопрокрутки
+             * @returns {number} // скорость автопрокрутки
              */
             function setAutoSlideSpeed(settingsSpeed) {
                 var speed = parseInt(settingsSpeed),
@@ -423,114 +451,6 @@ $(document).ready(function () {
         }
     };
  
-/*****EXTENDS****/
-    Slider.prototype.controls = function () {
-        var self = this,
-            controlElements = $('.slider__control-item',this.box);
-        
-        function ControlElement(){
-            this.active = false,
-            this.index = null,
-            this.$element = null;
-        };
-        
-        ControlElement.prototype = {
-            init: function () {
-                this.watch();
-                this.addClasses();
-
-                this.$element.on('click', function () {
-                    if (this.index === self.counter) {
-                        return false;
-                    }
-                    checkoutItem(this.index);
-                }.bind(this));
-            },
-            watch: function () {
-                $(document).on('counterUpdate', function () {
-                  
-                    if(this.index === self.counter) {
-                        this.$element.addClass('slider__control-item_active');
-                        this.active = true;
-                    }
-                    else if (this.active) {
-                        this.$element.removeClass('slider__control-item_active');
-                    }
-                    
-                }.bind(this));
-            },
-            addClasses: function () {
-                this.$element.addClass('slider__control-item'); 
-                if(this.active) {
-                   this.$element.addClass('slider__control-item_active'); 
-                }
-            }
-        };
-        
-        if (controlElements.length === 0) {
-            createView();
-        }
-        else {
-           createModel(controlElements);
-        };
-
-        
-        function createModel(arrElements) {
-            self.model = [];
-            
-            for (var i = 0, max = arrElements.length; i < max; i++) {
-                self.model[i] = new ControlElement;
-                if(i === 0 ) self.model[i].active = true;
-                self.model[i].index = i;
-                self.model[i].$element = $(arrElements[i]);
-                self.model[i].init();
-            }
-        }
-        
-        function createView() {
-            var  fragment = document.createDocumentFragment(),
-                    elements = [];
-
-            for (var i = 0, max = self.items.length; i < max; i++) {
-                var element = document.createElement('li');
-                elements.push(element);
-                fragment.appendChild(element);
-            }
-            
-            createModel(elements);
-            
-            var list = document.createElement('ul');
-            $(list).addClass('slider__control-list');
-            list.appendChild(fragment);
-            $(self.box).append(list);
-        }
-
-        function checkoutItem(index) {
-            var oldActiveElements = self.getElementsSet(self.counter);
-            
-                self.updateCounter(index);
-                self.updateElementsClasses().removeOld(oldActiveElements); 
-                self.updateElementsClasses().setNew();               
-        }
-        
-        /*function smoothlyCheckout(index, oldIndex) {
-            var count = Math.abs(index - oldIndex) + 1;
-            var next = (index > oldIndex) ? true : false;
-            
-            $(self.items[oldIndex]).css('position','relative');
-            
-            for (var i = oldIndex; i <= index; i++) {
-
-                $(self.items[i]).css({'opacity': '1', 'transform': 'translateX(' + i + '00%)', 'transition': 'transform 10s linear'});
-            }
-            for (var k = index, i = oldIndex; k >= 0; k--) {
-                $(self.items[i]).css({'opacity': '1', 'transform': 'translateX(-' + k + '00%)', 'transition': 'transform 10s linear'});
-                i++;
-            }
-        }*/
-
-    };
-
     slidersCollection('.slider_js');
 
      function slidersCollection(className) {
