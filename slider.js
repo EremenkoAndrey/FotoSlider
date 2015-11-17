@@ -25,7 +25,7 @@ $(function () {
                 
                 Window.RTSlider = this; // Экспорт в глобальное пр-во имен
                 $.event.trigger('sliderReady'); // Извещаем подписчиков по готовности модуля
-    }
+    };
 
     // Методы, необходимые для работы слайдера
     Slider.prototype = {
@@ -196,6 +196,7 @@ $(function () {
          * @param {type} direction // направление 'next' (следующ.) или 'prev' (предыд.)
          * @param {type} counter // текущее значение счетчика
          * @param {type} speed // скорость анимации (необязательный)
+         * @returns {Bolean} возвращает false в случае не срабатывания
          */
         slide: function (direction, counter, speed) {
             var self = this,
@@ -208,6 +209,7 @@ $(function () {
             var endPosition = directions[direction];
             
             if(this.animate) return false;
+            
             this.animate = true;
 
             if (direction === 'next') {
@@ -422,13 +424,9 @@ $(function () {
             
             function timer() {
                 time = setTimeout(function () {
-                    // Если мышка не над элементом и нет анимации, которая иногда 
-                    // запаздывает при нагрузке на браузер в неактивной вкладке
-                    if (autoScrollFlag && !self.animate) {
-                        clearTimeout(time);
+
+                    if (autoScrollFlag) {
                         self.slide('next', self.counter);
-                    } else {
-                        // Или очищаем таймаут и пытаемся запустить ф-цию повторно
                         clearTimeout(time);
                         timer();
                     }
