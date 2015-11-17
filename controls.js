@@ -94,11 +94,30 @@ $(document).on('sliderReady', function () {
         }
         // Переключает активный элемент блока
         function switchActiveItem(index) {
-            var oldActiveElements = self.getElementsSet(self.counter);
+            var i = 2;
+
+trall();
+            //setTimeout(trall, 0);
+
+            function trall() {
+                if (!i) return ; 
+                if (self.slide('next', self.counter, 100)) {
+                                    console.log(5);
+                    trall();
+                    i--;
+                }
+
+                setTimeout(trall, 0);
+            }
+
+            
+
+
+           /* var oldActiveElements = self.getElementsSet(self.counter);
 
             self.updateCounter(index);
             self.updateElementsClasses().removeOld(oldActiveElements);
-            self.updateElementsClasses().setNew();
+            self.updateElementsClasses().setNew();*/
         }
         
     };

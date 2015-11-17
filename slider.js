@@ -228,8 +228,8 @@ $(function () {
                 self.updateElementsClasses().setNew();               // и выставляем новые значения 
                 self.clearInlineCss();
                 self.animate = false;
-                return true;
             });
+                            return true;
         },
         /**
          * Функция обеспечивает обработку тач-событий и режим работы на мобильных
