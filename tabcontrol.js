@@ -107,4 +107,3 @@ $(document).on('sliderReady', function () {
     };
 
 });
-
