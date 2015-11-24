@@ -9,7 +9,10 @@ $(document).on('sliderReady', function () {
     Slider.prototype = Window.RTSlider.__proto__;
     
     // Добавляет нижние элементы управления
-    Slider.prototype.controls = function () {
+    // по ховеру меняется картинка в слайдере
+    // ховер можно заменить на клик, просто заменив событие 'mouseover'
+    // на 'click'
+    Slider.prototype.tabcontrol = function () {
 
         var self = this,
                 controlElements = $('.slider__control-item', this.box);
@@ -27,7 +30,7 @@ $(document).on('sliderReady', function () {
             init: function () {
                 this.watch();
 
-                this.$element.on('click', function () {
+                this.$element.on('mouseover', function () {
                     if (this.index === self.counter) {
                         return false;
                     }
@@ -94,30 +97,11 @@ $(document).on('sliderReady', function () {
         }
         // Переключает активный элемент блока
         function switchActiveItem(index) {
-            var i = 2;
-
-trall();
-            //setTimeout(trall, 0);
-
-            function trall() {
-                if (!i) return ; 
-                if (self.slide('next', self.counter, 100)) {
-                                    console.log(5);
-                    trall();
-                    i--;
-                }
-
-                setTimeout(trall, 0);
-            }
-
-            
-
-
-           /* var oldActiveElements = self.getElementsSet(self.counter);
+            var oldActiveElements = self.getElementsSet(self.counter);
 
             self.updateCounter(index);
             self.updateElementsClasses().removeOld(oldActiveElements);
-            self.updateElementsClasses().setNew();*/
+            self.updateElementsClasses().setNew();
         }
         
     };

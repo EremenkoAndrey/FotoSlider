@@ -2,12 +2,12 @@ $(function () {
 
     "use strict";
     
-    var Slider = function (element, settings, ext) {
-        this.extends = ext || false,
+    var Slider = function (element, settings) {
         /*Настройки общие. Задаются в data-атрибутах*/
         this.repeat = settings.repeat || true, 
                 this.speed = settings.speed || 1000,
                 this.auto = settings.auto || false,
+                this.extends = settings.extends || false,
         /*Touch*/
                 // Минимальный сдвиг элемента для перелистывания (в  процентах)
                 this.percentReturn = 15, 
@@ -25,6 +25,7 @@ $(function () {
                 
                 Window.RTSlider = this; // Экспорт в глобальное пр-во имен
                 $.event.trigger('sliderReady'); // Извещаем подписчиков по готовности модуля
+
     };
 
     // Методы, необходимые для работы слайдера
@@ -42,8 +43,9 @@ $(function () {
             }
             
             if (this.extends) {
-                for (var i = 0, max = this.extends.length; i < max; i++) {
-                    this[this.extends[i]]();
+                var extendsList = this.extends.split(',');
+                for (var i = 0, max = extendsList.length; i < max; i++) {
+                    this[extendsList[i]]();
                 }
             }
             
@@ -196,7 +198,7 @@ $(function () {
          * @param {type} direction // направление 'next' (следующ.) или 'prev' (предыд.)
          * @param {type} counter // текущее значение счетчика
          * @param {type} speed // скорость анимации (необязательный)
-         * @returns {Bolean} возвращает false в случае не срабатывания
+         * @returns {Bolean} возвращает false в случае не срабатывания или true
          */
         slide: function (direction, counter, speed) {
             var self = this,
@@ -229,7 +231,7 @@ $(function () {
                 self.clearInlineCss();
                 self.animate = false;
             });
-                            return true;
+            return true;
         },
         /**
          * Функция обеспечивает обработку тач-событий и режим работы на мобильных
@@ -458,10 +460,9 @@ $(function () {
             sliders[i] = new Slider(sliders[i], {
                 speed: parseInt($(sliders[i]).data('speed')),
                 repeat: $(sliders[i]).data('repeat'),
-                auto: $(sliders[i]).data('auto')
-            }, [
-               'controls' 
-            ]);
+                auto: $(sliders[i]).data('auto'),
+                extends: $(sliders[i]).data('extends')
+            });
             
             sliders[i].init();
         }
