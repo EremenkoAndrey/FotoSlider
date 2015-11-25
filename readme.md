@@ -61,10 +61,10 @@ slider,
 в объект слайдера. 
 Для этого при срабатывании события 'sliderReady':
     $(document).on('sliderReady', function () {})
-получаем объект слайдера из глобального пространства имен:
+создаем объект Slider
     var Slider = Window.RTSlider;
-и копируем его свойства и методы в объект-прототип:
-    Slider.prototype = Window.RTSlider.__proto__;
+и записываем методы слайдера ему в объект-прототип:
+    Slider.prototype = Window.RTSlider;
 
 затем пишем свой метод:
 Slider.prototype.extend

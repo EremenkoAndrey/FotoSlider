@@ -41,7 +41,7 @@ $(function () {
             if (countItems === 2) {
                 this.repeat === 'norepeat';
             }
-            
+
             if (this.extends) {
                 var extendsList = this.extends.split(',');
                 for (var i = 0, max = extendsList.length; i < max; i++) {
@@ -251,7 +251,7 @@ $(function () {
             this.list.addEventListener('touchstart', touchStart, false);
             this.list.addEventListener('touchmove', touchMove, true);
             this.list.addEventListener('touchend', touchEnd, true);
-         
+
             function touchStart(event) {
                 event.preventDefault();
                 event.stopPropagation();
@@ -293,6 +293,8 @@ $(function () {
                 else {
                     actions.mooveReturn();
                 }
+                // Сбрасываем временные значения
+                shiftElement = 0;
                 activeMooved = false;
 
             }
@@ -408,25 +410,21 @@ $(function () {
                     time,
                     speed = setAutoSlideSpeed(this.auto),
                     autoScrollFlag = true;  //Флаг автоскролла
-    
+
             $(this.box).hover(
                     function() {
                         autoScrollFlag = false;
                     },
                     function() {
                         autoScrollFlag = true;
+                        timer();
                     }
             );
-            
+
             timer();
-            
-            $(document).on('counterUpdate', function () {
-                timer();
-            });
-            
+       
             function timer() {
                 time = setTimeout(function () {
-
                     if (autoScrollFlag) {
                         self.slide('next', self.counter);
                         clearTimeout(time);

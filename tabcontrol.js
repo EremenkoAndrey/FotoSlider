@@ -5,8 +5,8 @@
 $(document).on('sliderReady', function () {
 
     // 
-    var Slider = Window.RTSlider;
-    Slider.prototype = Window.RTSlider.__proto__;
+    var Slider = {};
+    Slider.prototype = Window.RTSlider;
     
     // Добавляет нижние элементы управления
     // по ховеру меняется картинка в слайдере
