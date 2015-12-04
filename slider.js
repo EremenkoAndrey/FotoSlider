@@ -1,30 +1,44 @@
 $(function () {
 
     "use strict";
-    
+
     var Slider = function (element, settings) {
         /*Настройки общие. Задаются в data-атрибутах*/
-        this.repeat = settings.repeat || true, 
+        this.repeat = settings.repeat || true,
                 this.speed = settings.speed || 1000,
-                this.auto = settings.auto || false,
+                this.bezier = (function () {
+                    if (settings.animation) {
+                        return 'cubic-bezier(' + settings.animation + ')';
+                    }
+                    return 'linear';
+                }()),
                 this.extends = settings.extends || false,
-        /*Touch*/
+                
+                /*Touch*/
                 // Минимальный сдвиг элемента для перелистывания (в  процентах)
-                this.percentReturn = 15, 
-        /*Служебные переменные*/
+                this.percentReturn = 15,
+
+                /*Служебные переменные*/
                 this.counter = 0, // Счетчик
                 this.animate = false, // Флаг анимации
-                
-        /* Ссылки на HTML элементы */
+                /**
+                * Проверка поддержки тач-событий. Использован метод Modernizr
+                * https://github.com/Modernizr/Modernizr/blob/master/feature-detects/touchevents.js
+                * Может не работать в FF при ручном изменении параметра
+                * dom.w3c_touch_events.enabled = 1 в настройках about:config
+                */
+                this.touch = ('ontouchstart' in window) || window.DocumentTouch && document instanceof DocumentTouch,
+
+                /* Ссылки на HTML элементы */
                 this.box = element,
-                this.list = $(element).find('.slider__list').get(0),
-                this.items = $(element).find('.slider__item'),
-                this.prev = $(element).find('.slider__control_prev').get(0), //Ссылка на кнопку >
-                this.next = $(element).find('.slider__control_next').get(0), //Ссылка на кнопку <
+                this.list = $(element).find('.slider__list_js').get(0),
+                this.items = $(element).find('.slider__item_js'),
+                this.prev = $(element).find('.slider__control_prev_js').get(0), //Ссылка на кнопку >
+                this.next = $(element).find('.slider__control_next_js').get(0), //Ссылка на кнопку <
                 this.boxWidth = $(element).width();
-                
-                Window.RTSlider = this; // Экспорт в глобальное пр-во имен
-                $.event.trigger('sliderReady'); // Извещаем подписчиков по готовности модуля
+
+        Window.RTSlider = this; // Экспорт в глобальное пр-во имен
+        $.event.trigger('sliderReady'); // Извещаем подписчиков по готовности модуля
 
     };
 
@@ -37,32 +51,28 @@ $(function () {
             var self = this,
                     countItems = this.items.length;
             // если картинок меньше 2 слайдер не работает
-            if (countItems < 2) return false;
+            if (countItems < 2)
+                return false;
             if (countItems === 2) {
                 this.repeat === 'norepeat';
             }
-
+            
+            // Инициализация расширений
             if (this.extends) {
-                var extendsList = this.extends.split(',');
+                var trim = this.extends.replace(/\s+/g, '');
+                var extendsList = trim.split(',');
                 for (var i = 0, max = extendsList.length; i < max; i++) {
                     this[extendsList[i]]();
                 }
             }
-            
+
+
             // Проверяем и включаем настройки
-            
-            /**
-             * Проверка поддержки тач-событий. Использован метод Modernizr
-             * https://github.com/Modernizr/Modernizr/blob/master/feature-detects/touchevents.js
-             * Может не работать в FF при ручном изменении параметра
-             * dom.w3c_touch_events.enabled = 1 в настройках about:config
-             */
-            if (('ontouchstart' in window) || window.DocumentTouch && document instanceof DocumentTouch) {
+
+            if (this.touch) {
                 this.swipe();
             }
-            if (this.auto && this.repeat !== 'norepeat') {
-                this.autoScroll();
-            }
+
             if (this.repeat === 'norepeat') {
                 this.repeat = false;
                 this.norepeat();
@@ -75,13 +85,13 @@ $(function () {
                 e.preventDefault();
                 if (self.animate)
                     return false;
-                self.slide('next', self.counter);
+                self.slide('next');
             });
             $(this.prev).on('click', function (e) {
                 e.preventDefault();
                 if (self.animate)
                     return false;
-                self.slide('prev', self.counter);
+                self.slide('prev');
             });
 
         },
@@ -89,9 +99,9 @@ $(function () {
          * Получение массива из трех элементов: левого, правого и центрального
          * @param {number} counter // по номеру центрального элемента
          * @returns {array} массив активных элементов, в зависимости от
-         * режима можно получать:
-         * repeat // всегда полный набор элементов (для "бесконечного" режима) 
-         * norepeat// полный набор только если имеются все соседние элементы 
+         * режима работы слайдера вы будете получать:
+         * если repeat - всегда полный набор элементов (для "бесконечного" режима) 
+         * если norepeat - полный набор только если имеются все соседние элементы 
          */
         getElementsSet: function (counter) {
             var arrElements = {
@@ -100,7 +110,7 @@ $(function () {
             };
 
             if (counter < (this.items.length - 1)) {
-                arrElements.repeat.rightSibling = this.items[counter + 1], 
+                arrElements.repeat.rightSibling = this.items[counter + 1],
                         arrElements.norepeat.rightSibling = this.items[counter + 1];
             }
             else {
@@ -113,12 +123,12 @@ $(function () {
                 arrElements.norepeat.leftSibling = null;
             }
             else {
-                arrElements.repeat.leftSibling = this.items[counter - 1], 
+                arrElements.repeat.leftSibling = this.items[counter - 1],
                         arrElements.norepeat.leftSibling = this.items[counter - 1];
             }
 
             arrElements.repeat.mainElement = this.items[counter],
-                        arrElements.norepeat.mainElement = this.items[counter];
+                    arrElements.norepeat.mainElement = this.items[counter];
 
             if (this.repeat) {
                 return arrElements.repeat;
@@ -133,38 +143,39 @@ $(function () {
          * принимает один обязательный параметр - массив элементов
          */
         updateElementsClasses: function () {
-          var self = this;
+            var self = this;
             return {
                 setNew: function (arrElements) {
                     var newElements = arrElements || self.getElementsSet(self.counter);
-                    $(newElements.mainElement).addClass('slider__item_active');
-                    $(newElements.rightSibling).addClass('slider__item_right');
-                    $(newElements.leftSibling).addClass('slider__item_left');
+                    $(newElements.mainElement).addClass('slider__item_active_js');
+                    $(newElements.rightSibling).addClass('slider__item_right_js');
+                    $(newElements.leftSibling).addClass('slider__item_left_js');
                 },
                 removeOld: function (arrElements) {
                     var oldElements = arrElements || false;
                     if (!oldElements) {
                         throw new Error("Необходимо передать аргумент с массивом элементов");
                     }
-                    $(oldElements.mainElement).removeClass('slider__item_active');
-                    $(oldElements.rightSibling).removeClass('slider__item_right');
-                    $(oldElements.leftSibling).removeClass('slider__item_left');
+                    $(oldElements.mainElement).removeClass('slider__item_active_js');
+                    $(oldElements.rightSibling).removeClass('slider__item_right_js');
+                    $(oldElements.leftSibling).removeClass('slider__item_left_js');
                 }
             };
         },
         /**
          * Обновляет значение счетчика. В большую или меньшую сторону -
-         * определяет переданная строка
-         * @param 'plus' или 'minus' изменяют значение на единицу, 
-         * можно передать конкретное число
+         * определяет переданная строка:
+         * @param {stirng || number} строки 'plus' или 'minus' изменяют значение
+         * на единицу, можно передать конкретное число - номер элемента, 
+         * на который следует перейти
          * При изменении значения счетчика метод генерирует глобальное событие 
          * 'counterUpdate'
          */
         updateCounter: function (value) {
             var number = this.counter,
                     elementsCount = this.items.length;
-            
-            if(!isNaN(parseFloat(value)) && isFinite(value)) {
+
+            if (!isNaN(parseFloat(value)) && isFinite(value)) {
                 this.counter = value;
                 $.event.trigger('counterUpdate');
                 return;
@@ -194,24 +205,27 @@ $(function () {
             $.event.trigger('counterUpdate');
         },
         /**
-         * Функция обеспечивает перемещение, смену активных элементов
-         * @param {type} direction // направление 'next' (следующ.) или 'prev' (предыд.)
-         * @param {type} counter // текущее значение счетчика
-         * @param {type} speed // скорость анимации (необязательный)
+         * Функция обеспечивает перемещение слайда - смену активных элементов
+         * @param {stirng} direction // направление 'next' (следующ.) или 'prev' (предыд.)
+         * @param {stirng} speed // скорость анимации (необязательный)
+         * @param {stirng} animation // функция анимации cubic-bezier (необязательный)
          * @returns {Bolean} возвращает false в случае не срабатывания или true
          */
-        slide: function (direction, counter, speed) {
+        slide: function (direction, speed, animation) {
             var self = this,
                     animationSpeed = speed || this.speed,
-                    elementsSet = this.getElementsSet(counter); //получаем текущие активные элементы по старому значеню счетчика
+                    bezier = animation || this.bezier,
+                    elementsSet = this.getElementsSet(this.counter); //получаем текущие активные элементы по старому значеню счетчика
+
             var directions = {
                 next: {left: '-200%', center: '-100%', right: '0'},
                 prev: {left: '0', center: '100%', right: '200%'}
             };
             var endPosition = directions[direction];
-            
-            if(this.animate) return false;
-            
+
+            if (this.animate)
+                return false;
+
             this.animate = true;
 
             if (direction === 'next') {
@@ -221,17 +235,47 @@ $(function () {
                 this.updateCounter('minus');
             }
 
-            $(elementsSet.leftSibling).css({'transform': 'translateX(' + endPosition.left + ')', 'transition': 'transform ' + animationSpeed / 1000 + 's linear'});
-            $(elementsSet.mainElement).css({'transform': 'translateX(' + endPosition.center + ')', 'transition': 'transform ' + animationSpeed / 1000 + 's linear'});
-            $(elementsSet.rightSibling).css({'transform': 'translateX(' + endPosition.right + ')', 'transition': 'transform ' + animationSpeed / 1000 + 's linear'});
-            $(elementsSet.mainElement).one('transitionend webkitTransitionEnd oTransitionEnd', function () {
-                $(this).unbind('transitionend webkitTransitionEnd oTransitionEnd');
+
+            $(elementsSet.leftSibling).css({
+                '-webkit-transform': 'translateX(' + endPosition.left + ')',
+                'transform': 'translateX(' + endPosition.left + ')',
+                '-webkit-transition': '-webkit-transform ' + animationSpeed / 1000 + 's ' + bezier,
+                'transition': 'transform ' + animationSpeed / 1000 + 's ' + bezier
+            });
+            $(elementsSet.mainElement).css({
+                '-webkit-transform': 'translateX(' + endPosition.center + ')',
+                'transform': 'translateX(' + endPosition.center + ')',
+                '-webkit-transition': '-webkit-transform ' + animationSpeed / 1000 + 's ' + bezier,
+                'transition': 'transform ' + animationSpeed / 1000 + 's ' + bezier
+            });
+            $(elementsSet.rightSibling).css({
+                '-webkit-transform': 'translateX(' + endPosition.right + ')',
+                'transform': 'translateX(' + endPosition.right + ')',
+                '-webkit-transition': '-webkit-transform ' + animationSpeed / 1000 + 's ' + bezier,
+                'transition': 'transform ' + animationSpeed / 1000 + 's ' + bezier
+            });
+
+            // Страховочная функция на случай если не сработает событие,
+            // через двухкратный интервал анимации функция будет вызвана в обход события
+            // триггер здесь не подходит - некоторые недобраузеры просто не слушают
+            // события в неактивной влкадке
+            var insurance = setTimeout(afterAnimation, animationSpeed * 2);
+
+            $(self.box).one('transitionend webkitTransitionEnd oTransitionEnd', function () {
+                afterAnimation();
+            });
+
+            function afterAnimation() {
+                $(self.box).unbind('transitionend webkitTransitionEnd oTransitionEnd');
                 self.updateElementsClasses().removeOld(elementsSet); // По завершению анимации удаляем старые 
                 self.updateElementsClasses().setNew();               // и выставляем новые значения 
                 self.clearInlineCss();
                 self.animate = false;
-            });
+                clearTimeout(insurance);
+            }
+
             return true;
+
         },
         /**
          * Функция обеспечивает обработку тач-событий и режим работы на мобильных
@@ -241,20 +285,19 @@ $(function () {
             var self = this,
                     siblings,
                     coefficient = 1, //коэффициент "сопротивления" при отсутствующем элементе
-                    shiftFinger, //запоминаем интервал смещения пальца от точки касания в процентах
+                    shiftFinger, //запоминаем интервал смещения пальца от точки касания в процентах от ширины блока
                     shiftElement, //запоминаем интервал смещения элемента
                     startPoint,
                     activeMooved; //Флаг, отключающий слежение за перемещением мышки после mouseup
-            
-            $(this.box).addClass('slider_swipe');
-            
+
+            $(this.box).addClass('slider_swipe_js');
+
             this.list.addEventListener('touchstart', touchStart, false);
             this.list.addEventListener('touchmove', touchMove, true);
             this.list.addEventListener('touchend', touchEnd, true);
 
             function touchStart(event) {
-                event.preventDefault();
-                event.stopPropagation();
+
                 if (event.touches.length !== 1 || self.animate) {
                     return;
                 }
@@ -265,45 +308,51 @@ $(function () {
             }
 
             function touchMove(event) {
-                event.preventDefault();
-                event.stopPropagation();
+
                 if (!activeMooved || self.animate) {
                     return;
                 }
                 if (event.targetTouches.length === 1) { // Если 1 палец внутри элемента
                     var touch = event.targetTouches[0];
-                    shiftFinger = (startPoint - touch.pageX) * 100 / self.boxWidth;
-                    actions.mooved();
+                    shiftFinger = startPoint - touch.pageX;
+                    actions.moove();
                 }
                 event.stopPropagation();
             }
 
             function touchEnd(event) {
-                event.preventDefault();
-                event.stopPropagation();
+
                 if (!activeMooved || self.animate) {
                     return;
                 }
                 if (shiftElement < -self.percentReturn) {
-                    self.slide('prev', self.counter);
+                    self.updateCounter('minus');
+                    self.clearInlineCss(siblings);
+                    self.updateElementsClasses().removeOld(siblings);
+                    self.updateElementsClasses().setNew();
+                    // self.slide('prev', 300, 'linear'); анимация тормозит в мобильных
                 }
                 else if (shiftElement > self.percentReturn) {
-                    self.slide('next', self.counter);
+                    self.updateCounter('plus');
+                    self.clearInlineCss(siblings);
+                    self.updateElementsClasses().removeOld(siblings);
+                    self.updateElementsClasses().setNew();
+                    //self.slide('next', 300, 'linear'); анимация тормозит в мобильных
                 }
                 else {
                     actions.mooveReturn();
                 }
-                // Сбрасываем временные значения
+                // Сбрасываем врЕменные значения
                 shiftElement = 0;
                 activeMooved = false;
 
             }
-            
+
             var actions = {
                 /**
                  * Движение элементов, управляемое пользователем
                  */
-                mooved: function () {
+                moove: function () {
 
                     // Обрабатываем ситуацию отсутствия крайнего элемента
                     if ((!siblings.leftSibling && shiftFinger < 0) ||
@@ -313,9 +362,19 @@ $(function () {
                     else {
                         shiftElement = shiftFinger;
                     }
-                    $(siblings.leftSibling).css({'transform': 'translateX(' + -(100 + shiftElement) + '%)'});
-                    $(siblings.mainElement).css({'transform': 'translateX(' + (0 - shiftElement) + '%)'});
-                    $(siblings.rightSibling).css({'transform': 'translateX(' + (100 - shiftElement) + '%)'});
+
+                    $(siblings.leftSibling).css({
+                        '-webkit-transform': 'translate3d(' + -(self.boxWidth + shiftElement) + 'px,0,0)',
+                        'transform': 'translate3d(' + -(self.boxWidth + shiftElement) + 'px,0,0)'
+                    });
+                    $(siblings.mainElement).css({
+                        '-webkit-transform': 'translate3d(' + (0 - shiftElement) + 'px,0,0)',
+                        'transform': 'translate3d(' + (0 - shiftElement) + 'px,0,0)'
+                    });
+                    $(siblings.rightSibling).css({
+                        '-webkit-transform': 'translate3d(' + (self.boxWidth - shiftElement) + 'px,0,0)',
+                        'transform': 'translate3d(' + (self.boxWidth - shiftElement) + 'px,0,0)'
+                    });
                 },
                 /**
                  * Ограничивает перемещение крайних элементов в режиме "norepeat"
@@ -347,9 +406,24 @@ $(function () {
                  */
                 mooveReturn: function () {
                     self.animate = true;
-                    $(siblings.leftSibling).css({'transform': 'translateX(-100%)', 'transition': 'transform ' + self.speed / 1000 + 's cubic-bezier(0.175, 0.885, 0.32, 1.275)'});
-                    $(siblings.mainElement).css({'transform': 'translateX(0%)', 'transition': 'transform ' + self.speed / 1000 + 's cubic-bezier(0.175, 0.885, 0.32, 1.275)'});
-                    $(siblings.rightSibling).css({'transform': 'translateX(100%)', 'transition': 'transform ' + self.speed / 1000 + 's cubic-bezier(0.175, 0.885, 0.32, 1.275)'});
+                    $(siblings.leftSibling).css({
+                        '-webkit-transform': 'translateX(-100%)',
+                        'transform': 'translateX(-100%)',
+                        '-webkit-transition': '-webkit-transform ' + self.speed / 1000 + 's cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                        'transition': 'transform ' + self.speed / 1000 + 's cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                    });
+                    $(siblings.mainElement).css({
+                        '-webkit-transform': 'translateX(0%)',
+                        'transform': 'translateX(0%)',
+                        '-webkit-transition': '-webkit-transform ' + self.speed / 1000 + 's cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                        'transition': 'transform ' + self.speed / 1000 + 's cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                    });
+                    $(siblings.rightSibling).css({
+                        '-webkit-transform': 'translateX(100%)',
+                        'transform': 'translateX(100%)',
+                        '-webkit-transition': '-webkit-transform ' + self.speed / 1000 + 's cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                        'transition': 'transform ' + self.speed / 1000 + 's cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                    });
                     $(siblings.mainElement).one('transitionend webkitTransitionEnd oTransitionEnd', function () {
                         $(this).unbind('transitionend webkitTransitionEnd oTransitionEnd');
                         self.clearInlineCss();
@@ -360,10 +434,19 @@ $(function () {
 
         },
         /**
-         * Очищаем инлайн-стили
+         * Очищает инлайн-стили
+         * @param {obj} //принимает объект с элементами для очистки (необязательный)
+         * если аргумент не передан - очистит стили у всех элементов 
          */
-        clearInlineCss: function () {
-            $(this.items).css({'left': '', 'opacity': '', 'transform': '', 'transition': ''});
+        clearInlineCss: function (elements) {
+
+            if (elements) {
+                $.each(elements, function (key) {
+                    $(elements[key]).removeAttr('style');
+                })
+            } else {
+                $(this.items).removeAttr('style');
+            }
         },
         /**
          * Управляет режимом "norepeat"
@@ -384,14 +467,14 @@ $(function () {
             function controlElementsMenegement() {
                 if (self.counter === 0) {
                     $(self.prev).hide(100);
-                    if (hideElement){
+                    if (hideElement) {
                         $(hideElement).show(100);
                     }
                     hideElement = self.prev;
                 }
                 else if (self.counter === countElements) {
                     $(self.next).hide(100);
-                    if (hideElement){
+                    if (hideElement) {
                         $(hideElement).show(100);
                     }
                     hideElement = self.next;
@@ -402,68 +485,23 @@ $(function () {
                 }
             }
         },
-        /**
-         * Управляет режимом автоматической прокрутки
-         */
-        autoScroll: function() {
-            var self = this,
-                    time,
-                    speed = setAutoSlideSpeed(this.auto),
-                    autoScrollFlag = true;  //Флаг автоскролла
-
-            $(this.box).hover(
-                    function() {
-                        autoScrollFlag = false;
-                    },
-                    function() {
-                        autoScrollFlag = true;
-                        timer();
-                    }
-            );
-
-            timer();
-       
-            function timer() {
-                time = setTimeout(function () {
-                    if (autoScrollFlag) {
-                        self.slide('next', self.counter);
-                        clearTimeout(time);
-                        timer();
-                    }
-                }, speed);
-            }
-
-            /**
-             * Валидация передаваемой в настройках скорости автопрокрутки
-             * @returns {number} // скорость автопрокрутки
-             */
-            function setAutoSlideSpeed(settingsSpeed) {
-                var speed = parseInt(settingsSpeed),
-                    defaultSpeed = self.speed * 2;
-
-                if (isNaN(speed) || speed < self.speed) {
-                    return defaultSpeed;
-                }
-                return speed;
-            }
-        }
     };
- 
+
     slidersCollection('.slider_js');
 
-     function slidersCollection(className) {
+    function slidersCollection(className) {
         var sliders = $(className);
 
         for (var i = 0; i < sliders.length; i++) {
             sliders[i] = new Slider(sliders[i], {
                 speed: parseInt($(sliders[i]).data('speed')),
                 repeat: $(sliders[i]).data('repeat'),
-                auto: $(sliders[i]).data('auto'),
+                animation: $(sliders[i]).data('animation'),
                 extends: $(sliders[i]).data('extends')
             });
-            
+
             sliders[i].init();
         }
     }
-    
+
 });

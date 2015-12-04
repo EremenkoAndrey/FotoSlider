@@ -13,24 +13,27 @@ body {
 
 /*******************************************************/
 
-.slider * {
-    box-sizing: content-box;
-}
 .slider {
-    position: relative;
+    
+    &_js {
+        position: relative; 
+    }
 
     &__body {
         position: relative;
         overflow: hidden; 
     }
-    &__list {
+    &__list_js {
         position: relative; 
         margin: 0 !important;
         padding: 0 !important;
     }
     &__item {
+        display: none;
+        
+        &_js {
         position: absolute;
-        display: block;
+        display: none;
         opacity: 0;
         top: 0;
         left: 0;
@@ -39,44 +42,49 @@ body {
         padding: 0 !important;
         height: auto; 
         list-style: none;
-        text-align: center;
+        }
         
-        &_active {
+        &_active_js {
+            display: block;
             position: relative;
             opacity: 1;
-            transform: translateX(0);
-          //  transition: opacity 0.5s linear;
+            -ms-transform: translate3d(0,0,0); /* Для IE */
+            -webkit-transform: translate3d(0,0,0); /* Для Safari, Chrome, iOS */
+            -o-transform: translate3d(0,0,0); /* Для Opera */
+            transform: translate3d(0,0,0);
             z-index: 10;
         }
-        &_right {
+        
+        &_right_js {
+            display: block;
             opacity: 1;
             width: 100%; //need for crossbrowsers
-            transform: translateX(100%);
+            -ms-transform: translate3d(100%,0,0); /* Для IE */
+            -webkit-transform: translate3d(100%,0,0); /* Для Safari, Chrome, iOS */
+            -o-transform: translate3d(100%,0,0); /* Для Opera */
+            transform: translate3d(100%,0,0);
         }
-        &_left {
+        
+        &_left_js {
+            display: block;
             opacity: 1;
             width: 100%; //need for crossbrowsers
-            transform: translateX(-100%);
+            -ms-transform: translate3d(-100%,0,0); /* Для IE */
+            -webkit-transform: translate3d(-100%,0,0); /* Для Safari, Chrome, iOS */
+            -o-transform: translate3d(-100%,0,0); /* Для Opera */
+            transform: translate3d(-100%,0,0);
         }
-
-        .no-transform_js &_active {
-            transform: none;
-        }
-        .no-transform_js &_right {
-            transform: none;
-            left: 100%;
-        }
-        .no-transform_js &_left {
-            transform: none;
-            left: -100%;
-        }
+        
     }
+    
     &__image {
         display: inline-block;
         vertical-align: top;
         max-width: 100%;
 
     }
+    
+    /**ARROWS <>**/
     &__control {
         position: absolute;
         top: 50%;
@@ -94,25 +102,27 @@ body {
         text-align: center;
         z-index: 12;
         outline: none;
-        &_prev {
+        &_prev_js {
             left: -75px;
             transition: all  0.5s ease-out; 
         }
-        &_next {
+        &_next_js {
             right: -75px;
             transition: all  0.5s ease-out;
         }
     }
     &:hover {
         .slider__control {
-            &_prev {
+            &_prev_js {
                 left: 0;
             }
-            &_next {
+            &_next_js {
                 right: 0;
             }
         }
     }
+    
+    /**TEXT**/
     &__item-text {
         position: absolute;
         bottom: 0;
@@ -124,14 +134,18 @@ body {
         font-size: 0.9em;
         text-align: left;
     }
-    &__control-list {
-        margin: 0;
-        padding: 0;
-        list-style: none;
-        text-align: center;
-        font-size: 0;
-    }
-    &__control-item {
+}
+
+/** BOTTOM ROUNDS **/
+.controls-list_js {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    text-align: center;
+    font-size: 0;
+}
+.controls-item {
+    &_js {
         display: inline-block;
         vertical-align: top;
         height: 12px;
@@ -141,19 +155,19 @@ body {
         margin: 6px;
         background: #CCC;
         cursor: pointer;
-        
-        &:hover {
-           border-color: #999999; 
-        }
-        
-        &_active {
-            background: #999999;
-           border-color: #999999; 
-        }
+    }
+    &:hover {
+        border-color: #999999; 
+    }
+
+    &_active_js {
+        background: #999999;
+        border-color: #999999; 
     }
 }
-.slider_swipe .slider__control_prev,
-.slider_swipe .slider__control_next {
+
+.slider_swipe .slider__control_prev_js,
+.slider_swipe .slider__control_next_js {
     display: none !important; 
 }
 .slider__image + .slider__image {
