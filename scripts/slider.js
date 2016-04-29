@@ -1,9 +1,49 @@
-$(function () {
+/*
+ ПОДКЛЮЧЕНИЕ
+ 
+ Если на странице есть require.js, то скрипт будет подключен через него,
+ иначе скрипт подключается как плагин jQuery.fn.Slider
+ 
+ ПОДКЛЮЧЕНИЕ КАК ПЛАГИН
+ 
+ new jQuery.fn.Slider(element)
+ где element - сслыка на HTML-элемент слайдера
+ 
+ ПОДКЛЮЧЕНИЕ ЧЕРЕЗ Require.js
+ 
+ new Slider(element)
+ где element - сслыка на HTML-элемент слайдера
+ 
+ ПЕРЕДАВАЕМЫЕ ПАРАМЕТРЫ:
+ 
+ Во втором необязательном аргументе экземпляра функции слайдера можно передать 
+ массив с настройками:
+
+ new Slider(element, {
+    speed: 500 // Тип: число. Дефолтная скорость перемещения слайдов. По-умолчанию равна 500мс;
+    repeat="norepeat" // Тип: строка. Отключает "зацикленный" режим;
+    animation=".69,.18,.02,.99" // Тип: строка. Параметры анимации функции cubic-bezier;
+ })
+ 
+ Корректность и соответствие типу передаваемых параметров не проверяется. 
+ 
+ */
+
+(function(factory) {
+  if (typeof define === 'function' && define.amd) {
+    define(['jquery'], function($) {
+        return factory($);
+    });
+  } else {
+      if(!jQuery) throw  'For slider need jQuery';
+      jQuery.fn.Slider = factory();
+  }
+})(function ($){
 
     "use strict";
 
     var Slider = function (element, settings) {
-        /*Настройки общие. Задаются в data-атрибутах*/
+        /*Настройки общие. Передаются в параметрах*/
         this.repeat = settings.repeat || true,
                 this.speed = settings.speed || 1000,
                 this.bezier = (function () {
@@ -12,7 +52,6 @@ $(function () {
                     }
                     return 'linear';
                 }()),
-                this.extends = settings.extends || false,
                 
                 /*Touch*/
                 // Минимальный сдвиг элемента для перелистывания (в  процентах)
@@ -36,9 +75,8 @@ $(function () {
                 this.prev = $(element).find('.slider__control_prev_js').get(0), //Ссылка на кнопку >
                 this.next = $(element).find('.slider__control_next_js').get(0), //Ссылка на кнопку <
                 this.boxWidth = $(element).width();
-
-        Window.RTSlider = this; // Экспорт в глобальное пр-во имен
-        $.event.trigger('sliderReady'); // Извещаем подписчиков по готовности модуля
+                
+                this.init();
 
     };
 
@@ -57,16 +95,6 @@ $(function () {
                 this.repeat === 'norepeat';
             }
             
-            // Инициализация расширений
-            if (this.extends) {
-                var trim = this.extends.replace(/\s+/g, '');
-                var extendsList = trim.split(',');
-                for (var i = 0, max = extendsList.length; i < max; i++) {
-                    this[extendsList[i]]();
-                }
-            }
-
-
             // Проверяем и включаем настройки
 
             if (this.touch) {
@@ -111,7 +139,7 @@ $(function () {
 
             if (counter < (this.items.length - 1)) {
                 arrElements.repeat.rightSibling = this.items[counter + 1],
-                        arrElements.norepeat.rightSibling = this.items[counter + 1];
+                arrElements.norepeat.rightSibling = this.items[counter + 1];
             }
             else {
                 arrElements.repeat.rightSibling = this.items[0];
@@ -486,22 +514,7 @@ $(function () {
             }
         },
     };
+    
+    return Slider;
+})
 
-    slidersCollection('.slider_js');
-
-    function slidersCollection(className) {
-        var sliders = $(className);
-
-        for (var i = 0; i < sliders.length; i++) {
-            sliders[i] = new Slider(sliders[i], {
-                speed: parseInt($(sliders[i]).data('speed')),
-                repeat: $(sliders[i]).data('repeat'),
-                animation: $(sliders[i]).data('animation'),
-                extends: $(sliders[i]).data('extends')
-            });
-
-            sliders[i].init();
-        }
-    }
-
-});

@@ -5,17 +5,14 @@
 $(document).on('sliderReady', function () {
 
     // 
-    var Slider = {};
-    Slider.prototype = Window.RTSlider;
+    var Slider = Window.RTSlider;
+    Slider.prototype = Window.RTSlider.__proto__;
     
     // Добавляет нижние элементы управления
-    // по ховеру меняется картинка в слайдере
-    // ховер можно заменить на клик, просто заменив событие 'mouseover'
-    // на 'click'
-    Slider.prototype.slider_tabcontrol = function () {
+    Slider.prototype.gallery = function () {
 
         var self = this,
-                controlElements = $('.controls-item_js', this.box);
+                controlElements = $('.slider__control-item', this.box);
 
         // Объект одного элемента управления
         function ElementModel() {
@@ -30,23 +27,24 @@ $(document).on('sliderReady', function () {
             init: function () {
                 this.watch();
 
-                this.$element.on('mouseover', function () {
-                    if (this.index === self.counter || self.animate) {
-                        return; 
+                this.$element.on('click', function () {
+                    if (this.index === self.counter) {
+                        return false;
                     }
                     switchActiveItem(this.index);
                 }.bind(this));
             },
+
             // Слушает событие изменения значения счетчика и меняет свой css-класс
             watch: function () {
                 $(document).on('counterUpdate', function () {
 
                     if (this.index === self.counter) {
-                        this.$element.addClass('controls-item_active_js');
+                        this.$element.addClass('slider__control-item_active');
                         this.active = true;
                     }
                     else if (this.active) {
-                        this.$element.removeClass('controls-item_active_js');
+                        this.$element.removeClass('slider__control-item_active');
                     }
 
                 }.bind(this));
@@ -80,9 +78,9 @@ $(document).on('sliderReady', function () {
 
             for (var i = 0, max = self.items.length; i < max; i++) {
                 var element = document.createElement('li');
-                $(element).addClass('controls-item_js');
+                $(element).addClass('slider__control-item');
                 if (i === 0) {
-                    $(element).addClass('controls-item_active_js');
+                    $(element).addClass('slider__control-item_active');
                 }
                 elements.push(element);
                 fragment.appendChild(element);
@@ -91,19 +89,30 @@ $(document).on('sliderReady', function () {
             createModelCollection(elements);
 
             var list = document.createElement('ul');
-            $(list).addClass('controls-list_js');
+            $(list).addClass('slider__control-list');
             list.appendChild(fragment);
             $(self.box).append(list);
         }
         // Переключает активный элемент блока
         function switchActiveItem(index) {
-            var oldActiveElements = self.getElementsSet(self.counter);
+            var i = 2;
 
-            self.updateCounter(index);
-            self.updateElementsClasses().removeOld(oldActiveElements);
-            self.updateElementsClasses().setNew();
+            trall();
+            function trall() {
+                if (!i)
+                    return;
+                if (self.slide('next', self.counter, 100)) {
+                    console.log(5);
+                    trall();
+                    i--;
+                }
+
+                setTimeout(trall, 0);
+            }
+
         }
         
     };
 
 });
+
